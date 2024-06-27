@@ -441,23 +441,75 @@ impl Filesystem for S3TMFS {
      fn setattr(
              &mut self,
              _req: &fuser::Request<'_>,
-             _ino: u64,
-             _mode: Option<u32>,
-             _uid: Option<u32>,
-             _gid: Option<u32>,
-             _size: Option<u64>,
-             _atime: Option<fuser::TimeOrNow>,
-             _mtime: Option<fuser::TimeOrNow>,
-             _ctime: Option<std::time::SystemTime>,
-             _fh: Option<u64>,
-             _crtime: Option<std::time::SystemTime>,
-             _chgtime: Option<std::time::SystemTime>,
-             _bkuptime: Option<std::time::SystemTime>,
-             _flags: Option<u32>,
-             _reply: fuser::ReplyAttr,
+             ino: u64,
+             mode: Option<u32>,
+             uid: Option<u32>,
+             gid: Option<u32>,
+             size: Option<u64>,
+             atime: Option<fuser::TimeOrNow>,
+             mtime: Option<fuser::TimeOrNow>,
+             ctime: Option<std::time::SystemTime>,
+             fh: Option<u64>,
+             crtime: Option<std::time::SystemTime>,
+             chgtime: Option<std::time::SystemTime>,
+             bkuptime: Option<std::time::SystemTime>,
+             flags: Option<u32>,
+             reply: fuser::ReplyAttr,
          ) {
+            println!(">>> TODO: setattr ino={ino}");
+
+            // Look up file
+            let opt_attr = self.inode_map.get_mut(&ino);
+            if let None = opt_attr {
+                reply.error(ENOENT);
+                return;
+            }
+
+            // Mutate file attribute
+            let attr = opt_attr.unwrap();
+
+            if let Some(mode) = mode {
+                println!("\t mode={mode}");
+                panic!();
+            } else if let Some(uid) = uid {
+                println!("\t uid={uid}");
+                panic!();
+            } if let Some(gid) = gid {
+                println!("\t gid={gid}");
          panic!();
-     }
+            } if let Some(size) = size {
+                println!("\t size={size}");
+                attr.size = size;
+            } if let Some(_) = atime {
+                println!("\t atime=?");
+                panic!();
+            } if let Some(_) = mtime {
+                println!("\t mtime=?");
+                panic!();
+            } if let Some(ctime) = ctime {
+                println!("\t ctime={}", ctime.elapsed().unwrap().as_millis());
+                panic!();
+            } if let Some(fh) = fh {
+                println!("\t TODO: fh={fh}");
+            } if let Some(crtime) = crtime {
+                println!("\t crtime={}", crtime.elapsed().unwrap().as_millis());
+                panic!();
+            } if let Some(chgtime) = chgtime {
+                println!("\t chgtime={}", chgtime.elapsed().unwrap().as_millis());
+                panic!();
+            } if let Some(bkuptime) = bkuptime {
+                println!("\t bkuptime={}", bkuptime.elapsed().unwrap().as_millis());
+                panic!();
+            } if let Some(flags) = flags {
+                println!("\t flags={flags}");
+                panic!();
+            } else {
+                // Not sure what to do...
+                panic!();
+            }
+
+            reply.attr(&TTL, &attr);
+        }
 
      fn setlk(
              &mut self,
