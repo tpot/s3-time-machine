@@ -29,11 +29,11 @@ const ROOT_DIR_ATTR: FileAttr = FileAttr {
     blksize: 512,
 };
 
-
 // Our filesystem
 struct S3TMFS {
     next_inode: u64,
     inode_map: HashMap<u64, FileAttr>,
+    name_map: HashMap<String, u64>,
 }
 
 impl S3TMFS {
@@ -43,9 +43,13 @@ impl S3TMFS {
         let mut inode_map = HashMap::new();
         inode_map.insert(FUSE_ROOT_ID, ROOT_DIR_ATTR);
 
+        let mut name_map = HashMap::new();
+        name_map.insert(".".to_string(), FUSE_ROOT_ID);
+
         S3TMFS {
             next_inode,
             inode_map,
+            name_map,
          }
     }
 }
@@ -80,7 +84,8 @@ impl Filesystem for S3TMFS {
             _flags: i32,
             reply: fuser::ReplyCreate,
         ) {
-        println!(">>> create parent={parent}, name={}", name.to_str().unwrap());
+        let name_str = name.to_str().unwrap();
+        println!(">>> create parent={parent}, name={}", name_str);
 
         let attrs: FileAttr = FileAttr {
             ino: self.next_inode,
@@ -99,14 +104,24 @@ impl Filesystem for S3TMFS {
             flags: 0,
             blksize: 512,
         };
+
+        self.inode_map.insert(attrs.ino, attrs);
+        self.name_map.insert(name_str.to_string(), attrs.ino);
+
+        self.next_inode = self.next_inode + 1;
+
         reply.created(&TTL, &attrs, 0, 1, 1);
     }
 
      fn access(&mut self, _req: &fuser::Request<'_>, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {
          println!(">>> access ino={ino} mask={mask}");
-         match ino {
-            FUSE_ROOT_ID => reply.ok(),
-            _ => reply.error(ENOENT),
+
+         if self.inode_map.contains_key(&ino) {
+            println!("\tok");
+            reply.ok();
+        } else {
+            println!("\tENOENT");
+            reply.error(ENOENT);
          }
      }
 
@@ -419,14 +434,15 @@ impl Filesystem for S3TMFS {
      fn setxattr(
              &mut self,
              _req: &fuser::Request<'_>,
-             _ino: u64,
-             _name: &std::ffi::OsStr,
+             ino: u64,
+             name: &std::ffi::OsStr,
              _value: &[u8],
              _flags: i32,
              _position: u32,
-             _reply: ReplyEmpty,
+             reply: ReplyEmpty,
          ) {
-         panic!();
+            println!(">>> setxattr ino={ino}, name={}", name.to_str().unwrap());
+            reply.ok();
      }
 
      fn statfs(&mut self, _req: &fuser::Request<'_>, _ino: u64, reply: fuser::ReplyStatfs) {
@@ -445,9 +461,10 @@ impl Filesystem for S3TMFS {
          panic!();
      }
 
-     fn unlink(&mut self, _req: &fuser::Request<'_>, _parent: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
-         panic!();
-     }
+     fn unlink(&mut self, _req: &fuser::Request<'_>, parent: u64, name: &std::ffi::OsStr, reply: ReplyEmpty) {
+        println!(">>> unlink parent={parent}, name={}", name.to_str().unwrap());
+        reply.ok();
+    }
 
      fn write(
              &mut self,
