@@ -1,6 +1,9 @@
 pub mod s3tmfs;
 pub mod wrapperfs;
 
+#[cfg(test)]
+mod tests;
+
 use crate::s3tmfs::S3TMFS;
 
 use clap::{arg, Command};
