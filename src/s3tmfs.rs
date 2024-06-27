@@ -510,8 +510,21 @@ impl Filesystem for S3TMFS {
      }
 
      fn unlink(&mut self, _req: &fuser::Request<'_>, parent: u64, name: &std::ffi::OsStr, reply: ReplyEmpty) {
-        println!(">>> unlink parent={parent}, name={}", name.to_str().unwrap());
-        reply.ok();
+        let name_str = name.to_str().unwrap();
+        println!(">>> unlink parent={parent}, name={}", name_str);
+
+        match self.name_map.get(name_str) {
+            Some(ino) => {
+                println!("\tok ino={ino}");
+                self.inode_map.remove(ino);
+                self.name_map.remove(name_str);
+                reply.ok()
+            },
+            _ => {
+                println!("\t ENOENT");
+                reply.error(ENOENT)
+            }
+        }
     }
 
      fn write(
