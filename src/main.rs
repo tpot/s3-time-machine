@@ -3,11 +3,10 @@ pub mod wrapperfs;
 
 use crate::s3tmfs::S3TMFS;
 
-use fuser::MountOption;
 use clap::{arg, Command};
+use fuser::MountOption;
 
 fn main() {
-
     // Command line options
     let matches = Command::new("s3-time-machine")
         .arg(arg!(--mountpoint <DIR>).required(true))
@@ -20,7 +19,8 @@ fn main() {
     let mut options = vec![
         MountOption::AutoUnmount,
         MountOption::RW,
-        MountOption::FSName("s3-tm".to_string())];
+        MountOption::FSName("s3-tm".to_string()),
+    ];
     options.push(MountOption::AutoUnmount);
 
     let fs = S3TMFS::new();
