@@ -76,8 +76,20 @@ impl Filesystem for S3TMFS {
     }
 
     fn lookup(&mut self, _req: &fuser::Request<'_>, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEntry) {
-        println!(">>> lookup parent={parent} name={}", name.to_str().unwrap());
-        reply.error(ENOENT);
+        let name_str = name.to_str().unwrap();
+        println!(">>> lookup parent={parent} name={}", name_str);
+
+        match self.name_map.get(name_str) {
+            Some(ino) => {
+                println!("\tok ino={ino}");
+                let attr = self.inode_map.get(ino);
+                reply.entry(&TTL, attr.unwrap(), 1)
+            },
+            _ => {
+                println!("\t ENOENT");
+                reply.error(ENOENT)
+            }
+        }
     }
 
     fn create(
