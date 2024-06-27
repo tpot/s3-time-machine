@@ -1,4 +1,6 @@
 pub mod s3tmfs;
+pub mod wrapperfs;
+
 use crate::s3tmfs::S3TMFS;
 
 use fuser::MountOption;

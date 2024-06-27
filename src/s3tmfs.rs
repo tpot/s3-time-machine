@@ -1,11 +1,11 @@
+use crate::wrapperfs::WrappedFilesystem;
+
 use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
 
 use libc::ENOENT;
 
-use fuser::{
-    FileAttr, FileType, Filesystem, ReplyEmpty, FUSE_ROOT_ID
-};
+use fuser::{FileAttr, FileType, ReplyEmpty, FUSE_ROOT_ID};
 
 // Default TTL value
 const TTL: Duration = Duration::from_secs(1); // 1 second
@@ -36,6 +36,8 @@ pub struct S3TMFS {
     name_map: HashMap<String, u64>,
 }
 
+// WrappedFilesystem implements Filesystem and exposes request-less interface
+
 impl S3TMFS {
     pub fn new() -> S3TMFS {
         let next_inode = FUSE_ROOT_ID + 1;
@@ -50,32 +52,31 @@ impl S3TMFS {
             next_inode,
             inode_map,
             name_map,
-         }
+        }
     }
 }
 
-impl Filesystem for S3TMFS {
-
-    fn init(&mut self, _req: &fuser::Request<'_>, _config: &mut fuser::KernelConfig) -> Result<(), libc::c_int> {
+impl WrappedFilesystem for S3TMFS {
+    fn fuse_init(&mut self) -> Result<(), libc::c_int> {
         println!(">>> init");
         Ok(())
     }
 
-    fn getattr(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
+    fn fuse_getattr(&mut self, ino: u64, reply: fuser::ReplyAttr) {
         println!(">>> getattr ino={ino}");
         match self.inode_map.get(&ino) {
             Some(attr) => {
                 println!("\tok");
                 reply.attr(&TTL, attr)
-            },
+            }
             None => {
                 println!("\tENOENT");
                 reply.error(ENOENT)
-            },
+            }
         }
     }
 
-    fn lookup(&mut self, _req: &fuser::Request<'_>, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEntry) {
+    fn fuse_lookup(&mut self, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEntry) {
         let name_str = name.to_str().unwrap();
         println!(">>> lookup parent={parent} name={}", name_str);
 
@@ -84,7 +85,7 @@ impl Filesystem for S3TMFS {
                 println!("\tok ino={ino}");
                 let attr = self.inode_map.get(ino);
                 reply.entry(&TTL, attr.unwrap(), 1)
-            },
+            }
             _ => {
                 println!("\t ENOENT");
                 reply.error(ENOENT)
@@ -92,16 +93,15 @@ impl Filesystem for S3TMFS {
         }
     }
 
-    fn create(
-            &mut self,
-            _req: &fuser::Request<'_>,
-            parent: u64,
-            name: &std::ffi::OsStr,
-            _mode: u32,
-            _umask: u32,
-            _flags: i32,
-            reply: fuser::ReplyCreate,
-        ) {
+    fn fuse_create(
+        &mut self,
+        parent: u64,
+        name: &std::ffi::OsStr,
+        _mode: u32,
+        _umask: u32,
+        _flags: i32,
+        reply: fuser::ReplyCreate,
+    ) {
         let name_str = name.to_str().unwrap();
         println!(">>> create parent={parent}, name={}", name_str);
 
@@ -131,76 +131,73 @@ impl Filesystem for S3TMFS {
         reply.created(&TTL, &attrs, 0, 1, 1);
     }
 
-     fn access(&mut self, _req: &fuser::Request<'_>, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {
-         println!(">>> access ino={ino} mask={mask}");
+    fn fuse_access(&mut self, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {
+        println!(">>> access ino={ino} mask={mask}");
 
-         if self.inode_map.contains_key(&ino) {
+        if self.inode_map.contains_key(&ino) {
             println!("\tok");
             reply.ok();
         } else {
             println!("\tENOENT");
             reply.error(ENOENT);
-         }
-     }
+        }
+    }
 
-     fn bmap(&mut self, _req: &fuser::Request<'_>, _ino: u64, _blocksize: u32, _idx: u64, _reply: fuser::ReplyBmap) {
-         panic!();
-     }
+    fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64, _reply: fuser::ReplyBmap) {
+        panic!();
+    }
 
-     fn copy_file_range(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino_in: u64,
-             _fh_in: u64,
-             _offset_in: i64,
-             _ino_out: u64,
-             _fh_out: u64,
-             _offset_out: i64,
-             _len: u64,
-             _flags: u32,
-             _reply: fuser::ReplyWrite,
-         ) {
-         panic!();
-     }
+    fn fuse_copy_file_range(
+        &mut self,
+        _ino_in: u64,
+        _fh_in: u64,
+        _offset_in: i64,
+        _ino_out: u64,
+        _fh_out: u64,
+        _offset_out: i64,
+        _len: u64,
+        _flags: u32,
+        _reply: fuser::ReplyWrite,
+    ) {
+        panic!();
+    }
 
-     fn destroy(&mut self) {
+    fn fuse_destroy(&mut self) {
         println!(">>> destroy");
-     }
+    }
 
-     fn exchange(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _parent: u64,
-             _name: &std::ffi::OsStr,
-             _newparent: u64,
-             _newname: &std::ffi::OsStr,
-             _options: u64,
-             _reply: ReplyEmpty,
-         ) {
-         panic!();
-     }
+    fn fuse_exchange(
+        &mut self,
+        _parent: u64,
+        _name: &std::ffi::OsStr,
+        _newparent: u64,
+        _newname: &std::ffi::OsStr,
+        _options: u64,
+        _reply: ReplyEmpty,
+    ) {
+        panic!();
+    }
 
-     fn fallocate(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _offset: i64,
-             _length: i64,
-             _mode: i32,
-             _reply: ReplyEmpty,
-         ) {
-         panic!();
-     }
+    fn fuse_fallocate(
+        &mut self,
+        _ino: u64,
+        _fh: u64,
+        _offset: i64,
+        _length: i64,
+        _mode: i32,
+        _reply: ReplyEmpty,
+    ) {
+        panic!();
+    }
 
-     fn flush(&mut self, _req: &fuser::Request<'_>, ino: u64, fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
+    fn fuse_flush(&mut self, ino: u64, fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
         println!(">>> flush ino={ino} fh={fh}");
 
         match self.inode_map.get(&ino) {
             Some(_) => {
                 println!("\tok");
                 reply.ok();
-            },
+            }
             _ => {
                 println!("\tENOENT");
                 reply.error(ENOENT)
@@ -208,360 +205,335 @@ impl Filesystem for S3TMFS {
         }
     }
 
-     fn forget(&mut self, _req: &fuser::Request<'_>, _ino: u64, _nlookup: u64) {
-         panic!();
-     }
+    fn fuse_forget(&mut self, ino: u64, _nlookup: u64) {
+        println!(">>> forget ino={ino}");
+    }
 
-     fn fsync(&mut self, _req: &fuser::Request<'_>, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty) {
-         panic!();
-     }
+    fn fuse_fsync(&mut self, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty) {
+        panic!();
+    }
 
-     fn fsyncdir(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _datasync: bool,
-             _reply: ReplyEmpty,
-         ) {
-         panic!();
-     }
+    fn fuse_fsyncdir(&mut self, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty) {
+        panic!();
+    }
 
-     fn getlk(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _lock_owner: u64,
-             _start: u64,
-             _end: u64,
-             _typ: i32,
-             _pid: u32,
-             _reply: fuser::ReplyLock,
-         ) {
-         panic!();
-     }
+    fn fuse_getlk(
+        &mut self,
+        _ino: u64,
+        _fh: u64,
+        _lock_owner: u64,
+        _start: u64,
+        _end: u64,
+        _typ: i32,
+        _pid: u32,
+        _reply: fuser::ReplyLock,
+    ) {
+        panic!();
+    }
 
-     fn getxattr(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             ino: u64,
-             name: &std::ffi::OsStr,
-             _size: u32,
-             reply: fuser::ReplyXattr,
-         ) {
-            println!(">>> getxattr ino={ino}, name={}", name.to_str().unwrap());
+    fn fuse_getxattr(
+        &mut self,
+        ino: u64,
+        name: &std::ffi::OsStr,
+        _size: u32,
+        reply: fuser::ReplyXattr,
+    ) {
+        println!(">>> getxattr ino={ino}, name={}", name.to_str().unwrap());
 
-            match self.inode_map.get(&ino) {
-                Some(_) => {
-                    println!("\tok");
-                    reply.size(0)
-                },
-                _ => {
-                    println!("\tENOENT");
-                    reply.error(ENOENT)
-                }
+        match self.inode_map.get(&ino) {
+            Some(_) => {
+                println!("\tok");
+                reply.size(0)
+            }
+            _ => {
+                println!("\tENOENT");
+                reply.error(ENOENT)
             }
         }
+    }
 
-     fn getxtimes(&mut self, _req: &fuser::Request<'_>, _ino: u64, _reply: fuser::ReplyXTimes) {
-         panic!();
-     }
+    fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes) {
+        panic!();
+    }
 
-     fn ioctl(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _flags: u32,
-             _cmd: u32,
-             _in_data: &[u8],
-             _out_size: u32,
-             _reply: fuser::ReplyIoctl,
-         ) {
-         panic!();
-     }
+    fn fuse_ioctl(
+        &mut self,
+        _ino: u64,
+        _fh: u64,
+        _flags: u32,
+        _cmd: u32,
+        _in_data: &[u8],
+        _out_size: u32,
+        _reply: fuser::ReplyIoctl,
+    ) {
+        panic!();
+    }
 
-     fn link(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _newparent: u64,
-             _newname: &std::ffi::OsStr,
-             _reply: fuser::ReplyEntry,
-         ) {
-         panic!();
-     }
+    fn fuse_link(
+        &mut self,
+        _ino: u64,
+        _newparent: u64,
+        _newname: &std::ffi::OsStr,
+        _reply: fuser::ReplyEntry,
+    ) {
+        panic!();
+    }
 
-     fn listxattr(&mut self, _req: &fuser::Request<'_>, _ino: u64,_sizee: u32, _reply: fuser::ReplyXattr) {
-         panic!();
-     }
+    fn fuse_listxattr(&mut self, _ino: u64, _sizee: u32, _reply: fuser::ReplyXattr) {
+        panic!();
+    }
 
-     fn lseek(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _offset: i64,
-             _whence: i32,
-             _reply: fuser::ReplyLseek,
-         ) {
-         panic!();
-     }
+    fn fuse_lseek(
+        &mut self,
+        _ino: u64,
+        _fh: u64,
+        _offset: i64,
+        _whence: i32,
+        _reply: fuser::ReplyLseek,
+    ) {
+        panic!();
+    }
 
-     fn mkdir(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _parent: u64,
-             _name: &std::ffi::OsStr,
-             _mode: u32,
-             _umask: u32,
-             _reply: fuser::ReplyEntry,
-         ) {
-         panic!();
-     }
+    fn fuse_mkdir(
+        &mut self,
+        _parent: u64,
+        _name: &std::ffi::OsStr,
+        _mode: u32,
+        _umask: u32,
+        _reply: fuser::ReplyEntry,
+    ) {
+        panic!();
+    }
 
-     fn mknod(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _parent: u64,
-             _name: &std::ffi::OsStr,
-             _mode: u32,
-             _umask: u32,
-             _rdev: u32,
-             _reply: fuser::ReplyEntry,
-         ) {
-         panic!();
-     }
+    fn fuse_mknod(
+        &mut self,
+        _parent: u64,
+        _name: &std::ffi::OsStr,
+        _mode: u32,
+        _umask: u32,
+        _rdev: u32,
+        _reply: fuser::ReplyEntry,
+    ) {
+        panic!();
+    }
 
-     fn open(&mut self, _req: &fuser::Request<'_>, _ino: u64, _flags: i32, _reply: fuser::ReplyOpen) {
-         panic!();
-     }
+    fn fuse_open(&mut self, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
+        println!(">>> TODO: open ino={ino}, flags={flags}");
+        reply.opened(1, 0);
+    }
 
-     fn opendir(&mut self, _req: &fuser::Request<'_>, _ino: u64, _flags: i32, _reply: fuser::ReplyOpen) {
-         panic!();
-     }
+    fn fuse_opendir(&mut self, _ino: u64, _flags: i32, _reply: fuser::ReplyOpen) {
+        panic!();
+    }
 
-     fn read(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _offset: i64,
-             _size: u32,
-             _flags: i32,
-             _lock_owner: Option<u64>,
-             _reply: fuser::ReplyData,
-         ) {
-         panic!();
-     }
+    fn fuse_read(
+        &mut self,
+        ino: u64,
+        fh: u64,
+        offset: i64,
+        size: u32,
+        _flags: i32,
+        _lock_owner: Option<u64>,
+        _reply: fuser::ReplyData,
+    ) {
+        println!(">>> TODO: read ino={ino}, fh={fh}, offset={offset}, size={size}");
+    }
 
-     fn readdir(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _offset: i64,
-             _reply: fuser::ReplyDirectory,
-         ) {
-         panic!();
-     }
+    fn fuse_readdir(&mut self, _ino: u64, _fh: u64, _offset: i64, _reply: fuser::ReplyDirectory) {
+        panic!();
+    }
 
-     fn readdirplus(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _offset: i64,
-             _reply: fuser::ReplyDirectoryPlus,
-         ) {
-         panic!();
-     }
+    fn fuse_readdirplus(
+        &mut self,
+        _ino: u64,
+        _fh: u64,
+        _offset: i64,
+        _reply: fuser::ReplyDirectoryPlus,
+    ) {
+        panic!();
+    }
 
-     fn readlink(&mut self, _req: &fuser::Request<'_>, _ino: u64,_replyy: fuser::ReplyData) {
-         panic!();
-     }
+    fn fuse_readlink(&mut self, _ino: u64, _reply: fuser::ReplyData) {
+        panic!();
+    }
 
-     fn release(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             ino: u64,
-             fh: u64,
-             _flags: i32,
-             _lock_owner: Option<u64>,
-             _flush: bool,
-             reply: ReplyEmpty,
-         ) {
-            println!(">>> release ino={ino}, fh={fh}");
+    fn fuse_release(
+        &mut self,
+        ino: u64,
+        fh: u64,
+        _flags: i32,
+        _lock_owner: Option<u64>,
+        _flush: bool,
+        reply: ReplyEmpty,
+    ) {
+        println!(">>> release ino={ino}, fh={fh}");
 
-            match self.inode_map.get(&ino) {
-                Some(_) => {
-                    println!("\tok");
-                    reply.ok()
-                },
-                _ => {
-                    println!("\tENOENT");
-                    reply.error(ENOENT)
-                }
+        match self.inode_map.get(&ino) {
+            Some(_) => {
+                println!("\tok");
+                reply.ok()
+            }
+            _ => {
+                println!("\tENOENT");
+                reply.error(ENOENT)
             }
         }
+    }
 
-     fn releasedir(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _flags: i32,
-             _reply: ReplyEmpty,
-         ) {
-         panic!();
-     }
+    fn fuse_releasedir(&mut self, _ino: u64, _fh: u64, _flags: i32, _reply: ReplyEmpty) {
+        panic!();
+    }
 
-     fn removexattr(&mut self, _req: &fuser::Request<'_>, _ino: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
-         panic!();
-     }
+    fn fuse_removexattr(&mut self, _ino: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
+        panic!();
+    }
 
-     fn rename(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _parent: u64,
-             _name: &std::ffi::OsStr,
-             _newparent: u64,
-             _newname: &std::ffi::OsStr,
-             _flags: u32,
-             _reply: ReplyEmpty,
-         ) {
-         panic!();
-     }
+    fn fuse_rename(
+        &mut self,
+        _parent: u64,
+        _name: &std::ffi::OsStr,
+        _newparent: u64,
+        _newname: &std::ffi::OsStr,
+        _flags: u32,
+        _reply: ReplyEmpty,
+    ) {
+        panic!();
+    }
 
-     fn rmdir(&mut self, _req: &fuser::Request<'_>, _parent: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
-         panic!();
-     }
+    fn fuse_rmdir(&mut self, _parent: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
+        panic!();
+    }
 
-     fn setattr(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             ino: u64,
-             mode: Option<u32>,
-             uid: Option<u32>,
-             gid: Option<u32>,
-             size: Option<u64>,
-             atime: Option<fuser::TimeOrNow>,
-             mtime: Option<fuser::TimeOrNow>,
-             ctime: Option<std::time::SystemTime>,
-             fh: Option<u64>,
-             crtime: Option<std::time::SystemTime>,
-             chgtime: Option<std::time::SystemTime>,
-             bkuptime: Option<std::time::SystemTime>,
-             flags: Option<u32>,
-             reply: fuser::ReplyAttr,
-         ) {
-            println!(">>> TODO: setattr ino={ino}");
+    fn fuse_setattr(
+        &mut self,
+        ino: u64,
+        mode: Option<u32>,
+        uid: Option<u32>,
+        gid: Option<u32>,
+        size: Option<u64>,
+        atime: Option<fuser::TimeOrNow>,
+        mtime: Option<fuser::TimeOrNow>,
+        ctime: Option<std::time::SystemTime>,
+        fh: Option<u64>,
+        crtime: Option<std::time::SystemTime>,
+        chgtime: Option<std::time::SystemTime>,
+        bkuptime: Option<std::time::SystemTime>,
+        flags: Option<u32>,
+        reply: fuser::ReplyAttr,
+    ) {
+        println!(">>> TODO: setattr ino={ino}");
 
-            // Look up file
-            let opt_attr = self.inode_map.get_mut(&ino);
-            if let None = opt_attr {
-                reply.error(ENOENT);
-                return;
-            }
-
-            // Mutate file attribute
-            let attr = opt_attr.unwrap();
-
-            if let Some(mode) = mode {
-                println!("\t mode={mode}");
-                panic!();
-            } else if let Some(uid) = uid {
-                println!("\t uid={uid}");
-                panic!();
-            } if let Some(gid) = gid {
-                println!("\t gid={gid}");
-         panic!();
-            } if let Some(size) = size {
-                println!("\t size={size}");
-                attr.size = size;
-            } if let Some(_) = atime {
-                println!("\t atime=?");
-                panic!();
-            } if let Some(_) = mtime {
-                println!("\t mtime=?");
-                panic!();
-            } if let Some(ctime) = ctime {
-                println!("\t ctime={}", ctime.elapsed().unwrap().as_millis());
-                panic!();
-            } if let Some(fh) = fh {
-                println!("\t TODO: fh={fh}");
-            } if let Some(crtime) = crtime {
-                println!("\t crtime={}", crtime.elapsed().unwrap().as_millis());
-                panic!();
-            } if let Some(chgtime) = chgtime {
-                println!("\t chgtime={}", chgtime.elapsed().unwrap().as_millis());
-                panic!();
-            } if let Some(bkuptime) = bkuptime {
-                println!("\t bkuptime={}", bkuptime.elapsed().unwrap().as_millis());
-                panic!();
-            } if let Some(flags) = flags {
-                println!("\t flags={flags}");
-                panic!();
-            } else {
-                // Not sure what to do...
-                panic!();
-            }
-
-            reply.attr(&TTL, &attr);
+        // Look up file
+        let opt_attr = self.inode_map.get_mut(&ino);
+        if let None = opt_attr {
+            reply.error(ENOENT);
+            return;
         }
 
-     fn setlk(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _lock_owner: u64,
-             _start: u64,
-             _end: u64,
-             _typ: i32,
-             _pid: u32,
-             _sleep: bool,
-             _reply: ReplyEmpty,
-         ) {
-         panic!();
-     }
+        // Mutate file attribute
+        let attr = opt_attr.unwrap();
 
-     fn setvolname(&mut self, _req: &fuser::Request<'_>, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
-         panic!();
-     }
+        if let Some(mode) = mode {
+            println!("\t mode={mode}");
+            panic!();
+        } else if let Some(uid) = uid {
+            println!("\t uid={uid}");
+            panic!();
+        }
+        if let Some(gid) = gid {
+            println!("\t gid={gid}");
+            panic!();
+        }
+        if let Some(size) = size {
+            println!("\t size={size}");
+            attr.size = size;
+        }
+        if let Some(_) = atime {
+            println!("\t atime=?");
+            panic!();
+        }
+        if let Some(_) = mtime {
+            println!("\t mtime=?");
+            panic!();
+        }
+        if let Some(ctime) = ctime {
+            println!("\t ctime={}", ctime.elapsed().unwrap().as_millis());
+            panic!();
+        }
+        if let Some(fh) = fh {
+            println!("\t TODO: fh={fh}");
+        }
+        if let Some(crtime) = crtime {
+            println!("\t crtime={}", crtime.elapsed().unwrap().as_millis());
+            panic!();
+        }
+        if let Some(chgtime) = chgtime {
+            println!("\t chgtime={}", chgtime.elapsed().unwrap().as_millis());
+            panic!();
+        }
+        if let Some(bkuptime) = bkuptime {
+            println!("\t bkuptime={}", bkuptime.elapsed().unwrap().as_millis());
+            panic!();
+        }
+        if let Some(flags) = flags {
+            println!("\t flags={flags}");
+            panic!();
+        } else {
+            // Not sure what to do...
+            panic!();
+        }
 
-     fn setxattr(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             ino: u64,
-             name: &std::ffi::OsStr,
-             _value: &[u8],
-             _flags: i32,
-             _position: u32,
-             reply: ReplyEmpty,
-         ) {
-            println!(">>> setxattr ino={ino}, name={}", name.to_str().unwrap());
-            reply.ok();
-     }
+        reply.attr(&TTL, &attr);
+    }
 
-     fn statfs(&mut self, _req: &fuser::Request<'_>, _ino: u64, reply: fuser::ReplyStatfs) {
-        println!(">>> statfs");
+    fn fuse_setlk(
+        &mut self,
+        _ino: u64,
+        _fh: u64,
+        _lock_owner: u64,
+        _start: u64,
+        _end: u64,
+        _typ: i32,
+        _pid: u32,
+        _sleep: bool,
+        _reply: ReplyEmpty,
+    ) {
+        panic!();
+    }
+
+    fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
+        panic!();
+    }
+
+    fn fuse_setxattr(
+        &mut self,
+        ino: u64,
+        name: &std::ffi::OsStr,
+        _value: &[u8],
+        _flags: i32,
+        _position: u32,
+        reply: ReplyEmpty,
+    ) {
+        println!(">>> setxattr ino={ino}, name={}", name.to_str().unwrap());
+        reply.ok();
+    }
+
+    fn fuse_statfs(&mut self, ino: u64, reply: fuser::ReplyStatfs) {
+        println!(">>> statfs ino={ino}");
         reply.statfs(100000, 50000, 50000, 1000, 1000, 4096, 90, 100);
-     }
+    }
 
-     fn symlink(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _parent: u64,
-             _link_name: &std::ffi::OsStr,
-             _target: &std::path::Path,
-             _reply: fuser::ReplyEntry,
-         ) {
-         panic!();
-     }
+    fn fuse_symlink(
+        &mut self,
+        _parent: u64,
+        _link_name: &std::ffi::OsStr,
+        _target: &std::path::Path,
+        _reply: fuser::ReplyEntry,
+    ) {
+        panic!();
+    }
 
-     fn unlink(&mut self, _req: &fuser::Request<'_>, parent: u64, name: &std::ffi::OsStr, reply: ReplyEmpty) {
+    fn fuse_unlink(&mut self, parent: u64, name: &std::ffi::OsStr, reply: ReplyEmpty) {
         let name_str = name.to_str().unwrap();
         println!(">>> unlink parent={parent}, name={}", name_str);
 
@@ -571,7 +543,7 @@ impl Filesystem for S3TMFS {
                 self.inode_map.remove(ino);
                 self.name_map.remove(name_str);
                 reply.ok()
-            },
+            }
             _ => {
                 println!("\t ENOENT");
                 reply.error(ENOENT)
@@ -579,19 +551,18 @@ impl Filesystem for S3TMFS {
         }
     }
 
-     fn write(
-             &mut self,
-             _req: &fuser::Request<'_>,
-             _ino: u64,
-             _fh: u64,
-             _offset: i64,
-             _data: &[u8],
-             _write_flags: u32,
-             _flags: i32,
-             _lock_owner: Option<u64>,
-             _reply: fuser::ReplyWrite,
-         ) {
-         panic!();
-     }
-
+    fn fuse_write(
+        &mut self,
+        ino: u64,
+        fh: u64,
+        offset: i64,
+        data: &[u8],
+        _write_flags: u32,
+        _flags: i32,
+        _lock_owner: Option<u64>,
+        reply: fuser::ReplyWrite,
+    ) {
+        println!(">>> TODO: write ino={ino}, fh={fh}, offset={offset}");
+        reply.written(data.len().try_into().unwrap());
+    }
 }
