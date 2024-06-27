@@ -195,7 +195,17 @@ impl Filesystem for S3TMFS {
 
      fn flush(&mut self, _req: &fuser::Request<'_>, ino: u64, fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
         println!(">>> flush ino={ino} fh={fh}");
-        reply.ok();
+
+        match self.inode_map.get(&ino) {
+            Some(_) => {
+                println!("\tok");
+                reply.ok();
+            },
+            _ => {
+                println!("\tENOENT");
+                reply.error(ENOENT)
+            }
+        }
     }
 
      fn forget(&mut self, _req: &fuser::Request<'_>, _ino: u64, _nlookup: u64) {
@@ -241,7 +251,17 @@ impl Filesystem for S3TMFS {
              reply: fuser::ReplyXattr,
          ) {
             println!(">>> getxattr ino={ino}, name={}", name.to_str().unwrap());
-            reply.size(0);
+
+            match self.inode_map.get(&ino) {
+                Some(_) => {
+                    println!("\tok");
+                    reply.size(0)
+                },
+                _ => {
+                    println!("\tENOENT");
+                    reply.error(ENOENT)
+                }
+            }
         }
 
      fn getxtimes(&mut self, _req: &fuser::Request<'_>, _ino: u64, _reply: fuser::ReplyXTimes) {
@@ -373,7 +393,17 @@ impl Filesystem for S3TMFS {
              reply: ReplyEmpty,
          ) {
             println!(">>> release ino={ino}, fh={fh}");
-            reply.ok();
+
+            match self.inode_map.get(&ino) {
+                Some(_) => {
+                    println!("\tok");
+                    reply.ok()
+                },
+                _ => {
+                    println!("\tENOENT");
+                    reply.error(ENOENT)
+                }
+            }
         }
 
      fn releasedir(
