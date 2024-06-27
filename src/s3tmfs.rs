@@ -64,8 +64,14 @@ impl Filesystem for S3TMFS {
     fn getattr(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
         println!(">>> getattr ino={ino}");
         match self.inode_map.get(&ino) {
-            Some(attr) => reply.attr(&TTL, attr),
-            None => reply.error(ENOENT),
+            Some(attr) => {
+                println!("\tok");
+                reply.attr(&TTL, attr)
+            },
+            None => {
+                println!("\tENOENT");
+                reply.error(ENOENT)
+            },
         }
     }
 
