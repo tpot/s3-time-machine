@@ -83,7 +83,7 @@ impl Filesystem for S3TMFS {
         println!(">>> create parent={parent}, name={}", name.to_str().unwrap());
 
         let attrs: FileAttr = FileAttr {
-            ino: 2,
+            ino: self.next_inode,
             size: 0,
             blocks: 0,
             atime: UNIX_EPOCH, // 1970-01-01 00:00:00
