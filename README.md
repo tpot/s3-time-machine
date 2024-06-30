@@ -7,5 +7,5 @@ backup application.
 
 * Create a sparsebundle disk image on a FUSE filesystem
 * Time Machine mounts the disk image as a HFS+ filesystem
-* FUSE filesystem intercepts reads and writes of HFS+ btrees
-* Local reads and writes mapped to S3 operations
+* FUSE filesystem creates virtual filesystem from HFS+ btrees access
+* Operations on virtual filesystem mapped to S3 operations
