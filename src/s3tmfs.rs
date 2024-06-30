@@ -62,16 +62,17 @@ impl WrappedFilesystem for S3TMFS {
         Ok(())
     }
 
-    fn fuse_getattr(&mut self, ino: u64, reply: fuser::ReplyAttr) {
+    fn fuse_getattr(&mut self, ino: u64) -> Result<(&Duration, &FileAttr), i32> {
         println!(">>> getattr ino={ino}");
+
         match self.inode_map.get(&ino) {
             Some(attr) => {
                 println!("\tok");
-                reply.attr(&TTL, attr)
+                Ok((&TTL, attr))
             }
             None => {
                 println!("\tENOENT");
-                reply.error(ENOENT)
+                Err(ENOENT)
             }
         }
     }

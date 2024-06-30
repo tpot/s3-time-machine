@@ -1,6 +1,7 @@
 use crate::s3tmfs::S3TMFS;
 
-use fuser::{Filesystem, ReplyEmpty};
+use std::time::Duration;
+use fuser::{FileAttr, Filesystem, ReplyEmpty};
 
 // If at some stage the request struct is required, we can define it using an enum.
 
@@ -13,7 +14,7 @@ use fuser::{Filesystem, ReplyEmpty};
 
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
-    fn fuse_getattr(&mut self, ino: u64, reply: fuser::ReplyAttr);
+    fn fuse_getattr(&mut self, ino: u64) -> Result<(&Duration, &FileAttr), i32>;
     fn fuse_lookup(&mut self, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEntry);
     fn fuse_create(
         &mut self,
@@ -236,7 +237,10 @@ impl Filesystem for S3TMFS {
     }
 
     fn getattr(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
-        self.fuse_getattr(ino, reply)
+        match self.fuse_getattr(ino) {
+            Ok((duration, attr)) => reply.attr(duration, &attr),
+            Err(err) => reply.error(err)
+        }
     }
 
     fn lookup(
