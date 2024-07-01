@@ -12,6 +12,14 @@ use fuser::{FileAttr, Filesystem, ReplyEmpty};
 //     Test(&'a LocalRequest),
 // }
 
+pub struct ReplyCreate {
+    pub ttl: Duration,
+    pub attr: FileAttr,
+    pub generation: u64,
+    pub fh: u64,
+    pub flags: u32,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<(&Duration, &FileAttr), i32>;
@@ -23,8 +31,7 @@ pub trait WrappedFilesystem {
         mode: u32,
         umask: u32,
         flags: i32,
-        reply: fuser::ReplyCreate,
-    );
+    ) -> Result<ReplyCreate, i32>;
     fn fuse_access(&mut self, ino: u64, mask: i32, reply: fuser::ReplyEmpty);
     fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64, _reply: fuser::ReplyBmap);
     fn fuse_copy_file_range(
@@ -263,7 +270,10 @@ impl Filesystem for S3TMFS {
         flags: i32,
         reply: fuser::ReplyCreate,
     ) {
-        self.fuse_create(parent, name, mode, umask, flags, reply);
+        match self.fuse_create(parent, name, mode, umask, flags) {
+            Ok(rc) => reply.created(&rc.ttl, &rc.attr, rc.generation, rc.fh, rc.flags),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn access(&mut self, _req: &fuser::Request<'_>, ino: u64, mask: i32, reply: ReplyEmpty) {

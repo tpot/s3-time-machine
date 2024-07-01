@@ -1,4 +1,7 @@
-use crate::wrapperfs::WrappedFilesystem;
+use crate::wrapperfs::{
+    ReplyCreate,
+    WrappedFilesystem
+};
 
 use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
@@ -100,9 +103,7 @@ impl WrappedFilesystem for S3TMFS {
         name: &std::ffi::OsStr,
         _mode: u32,
         _umask: u32,
-        _flags: i32,
-        reply: fuser::ReplyCreate,
-    ) {
+        _flags: i32) -> Result<ReplyCreate, i32> {
         let name_str = name.to_str().unwrap();
         println!(">>> create parent={parent}, name={}", name_str);
 
@@ -129,7 +130,13 @@ impl WrappedFilesystem for S3TMFS {
 
         self.next_inode = self.next_inode + 1;
 
-        reply.created(&TTL, &attrs, 0, 1, 1);
+        Ok(ReplyCreate{
+            ttl: TTL.clone(),
+            attr: attrs,
+            generation: 0,
+            fh: 1,
+            flags: 1,
+        })
     }
 
     fn fuse_access(&mut self, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {

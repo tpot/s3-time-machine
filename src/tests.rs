@@ -1,4 +1,7 @@
+use std::ffi::OsStr;
+
 use fuser::FUSE_ROOT_ID;
+use libc::passwd;
 
 use crate::s3tmfs::S3TMFS;
 use crate::wrapperfs::WrappedFilesystem;
@@ -25,5 +28,31 @@ fn fuse_getattr_root() {
             assert!(attr.ino == FUSE_ROOT_ID);
         },
         Err(err) => panic!("getattr returned {err}"),
+    }
+}
+
+#[test]
+fn fuse_create() {
+    let mut fs = make_fs();
+    match fs.fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0) {
+        Ok(rc) => {
+            assert!(rc.attr.ino > FUSE_ROOT_ID);
+            assert!(rc.attr.size == 0);
+            assert!(rc.attr.blocks == 0);
+        },
+        Err(err) => panic!("create returned errno {err}"),
+    }
+}
+
+#[test]
+fn fuse_create_getattr() {
+    let mut fs = make_fs();
+    let result = fs.fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0).unwrap();
+    match fs.fuse_getattr(result.attr.ino) {
+        Ok((duration, attr)) => {
+            assert!(duration.as_secs() > 0);
+            assert!(attr.ino == result.attr.ino);
+        },
+        Err(err) => panic!("getattr returned errno {err}"),
     }
 }
