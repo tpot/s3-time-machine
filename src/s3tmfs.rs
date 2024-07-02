@@ -1,4 +1,5 @@
 use crate::wrapperfs::{
+    ReplyAttr,
     ReplyCreate,
     WrappedFilesystem
 };
@@ -65,13 +66,13 @@ impl WrappedFilesystem for S3TMFS {
         Ok(())
     }
 
-    fn fuse_getattr(&mut self, ino: u64) -> Result<(&Duration, &FileAttr), i32> {
+    fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32> {
         println!(">>> getattr ino={ino}");
 
         match self.inode_map.get(&ino) {
             Some(attr) => {
                 println!("\tok");
-                Ok((&TTL, attr))
+                Ok(ReplyAttr{duration: &TTL, attr})
             }
             None => {
                 println!("\tENOENT");
