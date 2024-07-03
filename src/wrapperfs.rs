@@ -43,7 +43,7 @@ pub trait WrappedFilesystem {
         umask: u32,
         flags: i32,
     ) -> Result<ReplyCreate, i32>;
-    fn fuse_access(&mut self, ino: u64, mask: i32, reply: fuser::ReplyEmpty);
+    fn fuse_access(&mut self, ino: u64, mask: i32) -> Result<(), i32>;
     fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64, _reply: fuser::ReplyBmap);
     fn fuse_copy_file_range(
         &mut self,
@@ -66,8 +66,7 @@ pub trait WrappedFilesystem {
         newparent: u64,
         newname: &std::ffi::OsStr,
         options: u64,
-        reply: ReplyEmpty,
-    );
+    ) -> Result<(), i32>;
     fn fuse_fallocate(
         &mut self,
         _ino: u64,
@@ -75,12 +74,11 @@ pub trait WrappedFilesystem {
         _offset: i64,
         _length: i64,
         _mode: i32,
-        _reply: ReplyEmpty,
-    );
-    fn fuse_flush(&mut self, ino: u64, fh: u64, _lock_owner: u64, reply: ReplyEmpty);
+    ) -> Result<(), i32>;
+    fn fuse_flush(&mut self, ino: u64, fh: u64, _lock_owner: u64) -> Result<(), i32>;
     fn fuse_forget(&mut self, ino: u64, _nlookup: u64);
-    fn fuse_fsync(&mut self, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty);
-    fn fuse_fsyncdir(&mut self, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty);
+    fn fuse_fsync(&mut self, _ino: u64, _fh: u64, _datasync: bool) -> Result<(), i32>;
+    fn fuse_fsyncdir(&mut self, _ino: u64, _fh: u64, _datasync: bool) -> Result<(), i32>;
     fn fuse_getlk(
         &mut self,
         _ino: u64,
@@ -172,10 +170,9 @@ pub trait WrappedFilesystem {
         _flags: i32,
         _lock_owner: Option<u64>,
         _flush: bool,
-        reply: ReplyEmpty,
-    );
-    fn fuse_releasedir(&mut self, _ino: u64, _fh: u64, _flags: i32, _reply: ReplyEmpty);
-    fn fuse_removexattr(&mut self, _ino: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty);
+    ) -> Result<(), i32>;
+    fn fuse_releasedir(&mut self, _ino: u64, _fh: u64, _flags: i32) -> Result<(), i32>;
+    fn fuse_removexattr(&mut self, _ino: u64, _name: &std::ffi::OsStr) -> Result<(), i32>;
     fn fuse_rename(
         &mut self,
         _parent: u64,
@@ -183,9 +180,8 @@ pub trait WrappedFilesystem {
         _newparent: u64,
         _newname: &std::ffi::OsStr,
         _flags: u32,
-        _reply: ReplyEmpty,
-    );
-    fn fuse_rmdir(&mut self, _parent: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty);
+    ) -> Result<(), i32>;
+    fn fuse_rmdir(&mut self, _parent: u64, _name: &std::ffi::OsStr) -> Result<(), i32>;
     fn fuse_setattr(
         &mut self,
         ino: u64,
@@ -213,10 +209,9 @@ pub trait WrappedFilesystem {
         _typ: i32,
         _pid: u32,
         _sleep: bool,
-        _reply: ReplyEmpty,
-    );
+    ) -> Result<(), i32>;
     #[cfg(feature = "macos")]
-    fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr, _reply: ReplyEmpty);
+    fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr) -> Result<(), i32>;
     fn fuse_setxattr(
         &mut self,
         ino: u64,
@@ -224,8 +219,7 @@ pub trait WrappedFilesystem {
         _value: &[u8],
         _flags: i32,
         _position: u32,
-        reply: ReplyEmpty,
-    );
+    ) -> Result<(), i32>;
     fn fuse_statfs(&mut self, _ino: u64, reply: fuser::ReplyStatfs);
     fn fuse_symlink(
         &mut self,
@@ -234,7 +228,7 @@ pub trait WrappedFilesystem {
         _target: &std::path::Path,
         _reply: fuser::ReplyEntry,
     );
-    fn fuse_unlink(&mut self, parent: u64, name: &std::ffi::OsStr, reply: ReplyEmpty);
+    fn fuse_unlink(&mut self, parent: u64, name: &std::ffi::OsStr) -> Result<(), i32>;
     fn fuse_write(
         &mut self,
         ino: u64,
@@ -294,7 +288,10 @@ impl Filesystem for S3TMFS {
     }
 
     fn access(&mut self, _req: &fuser::Request<'_>, ino: u64, mask: i32, reply: ReplyEmpty) {
-        self.fuse_access(ino, mask, reply)
+        match self.fuse_access(ino, mask) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn bmap(
@@ -341,7 +338,10 @@ impl Filesystem for S3TMFS {
         options: u64,
         reply: ReplyEmpty,
     ) {
-        self.fuse_exchange(parent, name, newparent, newname, options, reply)
+        match self.fuse_exchange(parent, name, newparent, newname, options) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn fallocate(
@@ -354,7 +354,10 @@ impl Filesystem for S3TMFS {
         mode: i32,
         reply: ReplyEmpty,
     ) {
-        self.fuse_fallocate(ino, fh, offset, length, mode, reply);
+        match self.fuse_fallocate(ino, fh, offset, length, mode) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn flush(
@@ -365,7 +368,10 @@ impl Filesystem for S3TMFS {
         lock_owner: u64,
         reply: ReplyEmpty,
     ) {
-        self.fuse_flush(ino, fh, lock_owner, reply);
+        match self.fuse_flush(ino, fh, lock_owner) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn forget(&mut self, _req: &fuser::Request<'_>, ino: u64, nlookup: u64) {
@@ -380,7 +386,10 @@ impl Filesystem for S3TMFS {
         datasync: bool,
         reply: ReplyEmpty,
     ) {
-        self.fuse_fsync(ino, fh, datasync, reply)
+        match self.fuse_fsync(ino, fh, datasync) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn fsyncdir(
@@ -391,7 +400,10 @@ impl Filesystem for S3TMFS {
         datasync: bool,
         reply: ReplyEmpty,
     ) {
-        self.fuse_fsyncdir(ino, fh, datasync, reply)
+        match self.fuse_fsyncdir(ino, fh, datasync) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn getlk(
@@ -561,7 +573,10 @@ impl Filesystem for S3TMFS {
         flush: bool,
         reply: ReplyEmpty,
     ) {
-        self.fuse_release(ino, fh, flags, lock_owner, flush, reply)
+        match self.fuse_release(ino, fh, flags, lock_owner, flush) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn releasedir(
@@ -572,7 +587,10 @@ impl Filesystem for S3TMFS {
         flags: i32,
         reply: ReplyEmpty,
     ) {
-        self.fuse_releasedir(ino, fh, flags, reply)
+        match self.fuse_releasedir(ino, fh, flags) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn removexattr(
@@ -582,7 +600,10 @@ impl Filesystem for S3TMFS {
         name: &std::ffi::OsStr,
         reply: ReplyEmpty,
     ) {
-        self.fuse_removexattr(ino, name, reply)
+        match self.fuse_removexattr(ino, name) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn rename(
@@ -595,7 +616,10 @@ impl Filesystem for S3TMFS {
         flags: u32,
         reply: ReplyEmpty,
     ) {
-        self.fuse_rename(parent, name, newparent, newname, flags, reply)
+        match self.fuse_rename(parent, name, newparent, newname, flags) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn rmdir(
@@ -605,7 +629,10 @@ impl Filesystem for S3TMFS {
         name: &std::ffi::OsStr,
         reply: ReplyEmpty,
     ) {
-        self.fuse_rmdir(parent, name, reply)
+        match self.fuse_rmdir(parent, name) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn setattr(
@@ -645,12 +672,18 @@ impl Filesystem for S3TMFS {
         sleep: bool,
         reply: ReplyEmpty,
     ) {
-        self.fuse_setlk(ino, fh, lock_owner, start, end, typ, pid, sleep, reply)
+        match self.fuse_setlk(ino, fh, lock_owner, start, end, typ, pid, sleep) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     #[cfg(feature = "macos")]
     fn setvolname(&mut self, _req: &fuser::Request<'_>, name: &std::ffi::OsStr, reply: ReplyEmpty) {
-        self.fuse_setvolname(name, reply)
+        match self.fuse_setvolname(name) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn setxattr(
@@ -663,7 +696,10 @@ impl Filesystem for S3TMFS {
         position: u32,
         reply: ReplyEmpty,
     ) {
-        self.fuse_setxattr(ino, name, value, flags, position, reply)
+        match self.fuse_setxattr(ino, name, value, flags, position) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn statfs(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyStatfs) {
@@ -688,7 +724,10 @@ impl Filesystem for S3TMFS {
         name: &std::ffi::OsStr,
         reply: ReplyEmpty,
     ) {
-        self.fuse_unlink(parent, name, reply)
+        match self.fuse_unlink(parent, name) {
+            Ok(_) => reply.ok(),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn write(

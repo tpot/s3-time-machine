@@ -5,7 +5,7 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use libc::ENOENT;
 
-use fuser::{FileAttr, FileType, ReplyEmpty, FUSE_ROOT_ID};
+use fuser::{FileAttr, FileType, FUSE_ROOT_ID};
 
 // Default TTL value
 const TTL: Duration = Duration::from_secs(1); // 1 second
@@ -141,15 +141,15 @@ impl WrappedFilesystem for S3TMFS {
         })
     }
 
-    fn fuse_access(&mut self, ino: u64, mask: i32, reply: fuser::ReplyEmpty) {
+    fn fuse_access(&mut self, ino: u64, mask: i32) -> Result<(), i32> {
         println!(">>> access ino={ino} mask={mask}");
 
         if self.inode_map.contains_key(&ino) {
             println!("\tok");
-            reply.ok();
+            Ok(())
         } else {
             println!("\tENOENT");
-            reply.error(ENOENT);
+            Err(ENOENT)
         }
     }
 
@@ -184,8 +184,7 @@ impl WrappedFilesystem for S3TMFS {
         _newparent: u64,
         _newname: &std::ffi::OsStr,
         _options: u64,
-        _reply: ReplyEmpty,
-    ) {
+    ) -> Result<(), i32> {
         panic!();
     }
 
@@ -196,22 +195,21 @@ impl WrappedFilesystem for S3TMFS {
         _offset: i64,
         _length: i64,
         _mode: i32,
-        _reply: ReplyEmpty,
-    ) {
+    ) -> Result<(), i32> {
         panic!();
     }
 
-    fn fuse_flush(&mut self, ino: u64, fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
+    fn fuse_flush(&mut self, ino: u64, fh: u64, _lock_owner: u64) -> Result<(), i32> {
         println!(">>> flush ino={ino} fh={fh}");
 
         match self.inode_map.get(&ino) {
             Some(_) => {
                 println!("\tok");
-                reply.ok();
+                Ok(())
             }
             _ => {
                 println!("\tENOENT");
-                reply.error(ENOENT)
+                Err(ENOENT)
             }
         }
     }
@@ -220,11 +218,11 @@ impl WrappedFilesystem for S3TMFS {
         println!(">>> forget ino={ino}");
     }
 
-    fn fuse_fsync(&mut self, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty) {
+    fn fuse_fsync(&mut self, _ino: u64, _fh: u64, _datasync: bool) -> Result<(), i32> {
         panic!();
     }
 
-    fn fuse_fsyncdir(&mut self, _ino: u64, _fh: u64, _datasync: bool, _reply: ReplyEmpty) {
+    fn fuse_fsyncdir(&mut self, _ino: u64, _fh: u64, _datasync: bool) -> Result<(), i32> {
         panic!();
     }
 
@@ -376,27 +374,26 @@ impl WrappedFilesystem for S3TMFS {
         _flags: i32,
         _lock_owner: Option<u64>,
         _flush: bool,
-        reply: ReplyEmpty,
-    ) {
+    ) -> Result<(), i32> {
         println!(">>> release ino={ino}, fh={fh}");
 
         match self.inode_map.get(&ino) {
             Some(_) => {
                 println!("\tok");
-                reply.ok()
+                Ok(())
             }
             _ => {
                 println!("\tENOENT");
-                reply.error(ENOENT)
+                Err(ENOENT)
             }
         }
     }
 
-    fn fuse_releasedir(&mut self, _ino: u64, _fh: u64, _flags: i32, _reply: ReplyEmpty) {
+    fn fuse_releasedir(&mut self, _ino: u64, _fh: u64, _flags: i32) -> Result<(), i32> {
         panic!();
     }
 
-    fn fuse_removexattr(&mut self, _ino: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
+    fn fuse_removexattr(&mut self, _ino: u64, _name: &std::ffi::OsStr) -> Result<(), i32> {
         panic!();
     }
 
@@ -407,12 +404,11 @@ impl WrappedFilesystem for S3TMFS {
         _newparent: u64,
         _newname: &std::ffi::OsStr,
         _flags: u32,
-        _reply: ReplyEmpty,
-    ) {
+    ) -> Result<(), i32> {
         panic!();
     }
 
-    fn fuse_rmdir(&mut self, _parent: u64, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
+    fn fuse_rmdir(&mut self, _parent: u64, _name: &std::ffi::OsStr) -> Result<(), i32> {
         panic!();
     }
 
@@ -498,13 +494,12 @@ impl WrappedFilesystem for S3TMFS {
         _typ: i32,
         _pid: u32,
         _sleep: bool,
-        _reply: ReplyEmpty,
-    ) {
+    ) -> Result<(), i32> {
         panic!();
     }
 
     #[cfg(feature = "macos")]
-    fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
+    fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr) -> Result<(), i32> {
         panic!();
     }
 
@@ -515,10 +510,9 @@ impl WrappedFilesystem for S3TMFS {
         _value: &[u8],
         _flags: i32,
         _position: u32,
-        reply: ReplyEmpty,
-    ) {
+    ) -> Result<(), i32> {
         println!(">>> setxattr ino={ino}, name={}", name.to_str().unwrap());
-        reply.ok();
+        Ok(())
     }
 
     fn fuse_statfs(&mut self, ino: u64, reply: fuser::ReplyStatfs) {
@@ -536,7 +530,7 @@ impl WrappedFilesystem for S3TMFS {
         panic!();
     }
 
-    fn fuse_unlink(&mut self, parent: u64, name: &std::ffi::OsStr, reply: ReplyEmpty) {
+    fn fuse_unlink(&mut self, parent: u64, name: &std::ffi::OsStr) -> Result<(), i32> {
         let name_str = name.to_str().unwrap();
         println!(">>> unlink parent={parent}, name={}", name_str);
 
@@ -545,11 +539,11 @@ impl WrappedFilesystem for S3TMFS {
                 println!("\tok ino={ino}");
                 self.inode_map.remove(ino);
                 self.name_map.remove(name_str);
-                reply.ok()
+                Ok(())
             }
             _ => {
                 println!("\t ENOENT");
-                reply.error(ENOENT)
+                Err(ENOENT)
             }
         }
     }
