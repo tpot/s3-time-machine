@@ -1,6 +1,6 @@
 use crate::wrapperfs::{
-    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyIoctl, ReplyLock, ReplyWrite, ReplyXattr,
-    WrappedFilesystem,
+    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyIoctl, ReplyLock, ReplyLseek, ReplyWrite,
+    ReplyXattr, WrappedFilesystem,
 };
 
 #[cfg(feature = "macos")]
@@ -300,8 +300,7 @@ impl WrappedFilesystem for S3TMFS {
         _fh: u64,
         _offset: i64,
         _whence: i32,
-        _reply: fuser::ReplyLseek,
-    ) {
+    ) -> Result<ReplyLseek, i32> {
         panic!();
     }
 

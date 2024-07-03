@@ -64,6 +64,10 @@ pub struct ReplyIoctl<'a> {
     pub data: &'a [u8],
 }
 
+pub struct ReplyLseek {
+    pub offset: i64,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -151,8 +155,7 @@ pub trait WrappedFilesystem {
         _fh: u64,
         _offset: i64,
         _whence: i32,
-        _reply: fuser::ReplyLseek,
-    );
+    ) -> Result<ReplyLseek, i32>;
     fn fuse_mkdir(
         &mut self,
         _parent: u64,
@@ -530,7 +533,10 @@ impl Filesystem for S3TMFS {
         whence: i32,
         reply: fuser::ReplyLseek,
     ) {
-        self.fuse_lseek(ino, fh, offset, whence, reply)
+        match self.fuse_lseek(ino, fh, offset, whence) {
+            Ok(rl) => reply.offset(rl.offset),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn mkdir(
