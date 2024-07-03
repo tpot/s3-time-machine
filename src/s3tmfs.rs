@@ -424,15 +424,13 @@ impl WrappedFilesystem for S3TMFS {
         chgtime: Option<std::time::SystemTime>,
         bkuptime: Option<std::time::SystemTime>,
         flags: Option<u32>,
-        reply: fuser::ReplyAttr,
-    ) {
+    ) -> Result<ReplyAttr, i32> {
         println!(">>> TODO: setattr ino={ino}");
 
         // Look up file
         let opt_attr = self.inode_map.get_mut(&ino);
         if let None = opt_attr {
-            reply.error(ENOENT);
-            return;
+            return Err(ENOENT);
         }
 
         // Mutate file attribute
@@ -478,7 +476,7 @@ impl WrappedFilesystem for S3TMFS {
             panic!();
         }
 
-        reply.attr(&TTL, &attr);
+        Ok(ReplyAttr { ttl: &TTL, attr })
     }
 
     fn fuse_setlk(

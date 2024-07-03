@@ -241,8 +241,7 @@ pub trait WrappedFilesystem {
         chgtime: Option<std::time::SystemTime>,
         bkuptime: Option<std::time::SystemTime>,
         flags: Option<u32>,
-        reply: fuser::ReplyAttr,
-    );
+    ) -> Result<ReplyAttr, i32>;
     fn fuse_setlk(
         &mut self,
         _ino: u64,
@@ -747,10 +746,12 @@ impl Filesystem for S3TMFS {
         flags: Option<u32>,
         reply: fuser::ReplyAttr,
     ) {
-        self.fuse_setattr(
+        match self.fuse_setattr(
             ino, mode, uid, gid, size, atime, mtime, ctime, fh, crtime, chgtime, bkuptime, flags,
-            reply,
-        )
+        ) {
+            Ok(ra) => reply.attr(ra.ttl, ra.attr),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn setlk(
