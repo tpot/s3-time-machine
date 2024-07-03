@@ -10,6 +10,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: |
-          apt-get update
-          apt-get install -y --no-install-recommends libfuse-dev
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libfuse-dev
       - run: cargo test --no-default-features
