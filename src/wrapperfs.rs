@@ -16,6 +16,13 @@ pub struct ReplyAttr<'a> {
     pub duration: &'a Duration,
     pub attr: &'a FileAttr,
 }
+
+pub struct ReplyEntry<'a> {
+    pub ttl: &'a Duration,
+    pub attr: &'a FileAttr,
+    pub generation: u64,
+}
+
 pub struct ReplyCreate {
     pub ttl: Duration,
     pub attr: FileAttr,
@@ -27,7 +34,7 @@ pub struct ReplyCreate {
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
-    fn fuse_lookup(&mut self, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEntry);
+    fn fuse_lookup(&mut self, parent: u64, name: &std::ffi::OsStr) -> Result<ReplyEntry, i32>;
     fn fuse_create(
         &mut self,
         parent: u64,
@@ -261,7 +268,10 @@ impl Filesystem for S3TMFS {
         name: &std::ffi::OsStr,
         reply: fuser::ReplyEntry,
     ) {
-        self.fuse_lookup(parent, name, reply);
+        match self.fuse_lookup(parent, name) {
+            Ok(rl) => reply.entry(rl.ttl, rl.attr, rl.generation),
+            Err(err) => reply.error(err)
+        }
     }
 
     fn create(

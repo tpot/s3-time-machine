@@ -1,6 +1,7 @@
 use crate::wrapperfs::{
     ReplyAttr,
     ReplyCreate,
+    ReplyEntry,
     WrappedFilesystem
 };
 
@@ -81,7 +82,7 @@ impl WrappedFilesystem for S3TMFS {
         }
     }
 
-    fn fuse_lookup(&mut self, parent: u64, name: &std::ffi::OsStr, reply: fuser::ReplyEntry) {
+    fn fuse_lookup(&mut self, parent: u64, name: &std::ffi::OsStr) -> Result<ReplyEntry, i32> {
         let name_str = name.to_str().unwrap();
         println!(">>> lookup parent={parent} name={}", name_str);
 
@@ -89,11 +90,11 @@ impl WrappedFilesystem for S3TMFS {
             Some(ino) => {
                 println!("\tok ino={ino}");
                 let attr = self.inode_map.get(ino);
-                reply.entry(&TTL, attr.unwrap(), 1)
+                Ok(ReplyEntry{ttl: &TTL, attr: attr.unwrap(), generation: 1})
             }
             _ => {
                 println!("\t ENOENT");
-                reply.error(ENOENT)
+                Err(ENOENT)
             }
         }
     }

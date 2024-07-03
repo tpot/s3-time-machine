@@ -55,3 +55,28 @@ fn fuse_create_getattr() {
         Err(err) => panic!("getattr returned errno {err}"),
     }
 }
+
+#[test]
+fn fuse_lookup_root() {
+    let mut fs = make_fs();
+    match fs.fuse_lookup(FUSE_ROOT_ID, OsStr::new(".")) {
+        Ok(re) => {
+            assert!(re.ttl.as_secs() > 0);
+            assert!(re.attr.ino == FUSE_ROOT_ID);
+        },
+        Err(err) => panic!("lookup returned errno {err}"),
+    }
+}
+
+#[test]
+fn fuse_lookup_create() {
+    let mut fs = make_fs();
+    let _result = fs.fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0).unwrap();
+    match fs.fuse_lookup(FUSE_ROOT_ID, OsStr::new("foo")) {
+        Ok(re) => {
+            assert!(re.ttl.as_secs() > 0);
+            assert!(re.attr.ino > FUSE_ROOT_ID);
+        },
+        Err(err) => panic!("lookup returned errno {err}"),
+    }
+}
