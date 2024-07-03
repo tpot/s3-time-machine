@@ -1,9 +1,4 @@
-use crate::wrapperfs::{
-    ReplyAttr,
-    ReplyCreate,
-    ReplyEntry,
-    WrappedFilesystem
-};
+use crate::wrapperfs::{ReplyAttr, ReplyCreate, ReplyEntry, WrappedFilesystem};
 
 use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
@@ -73,7 +68,7 @@ impl WrappedFilesystem for S3TMFS {
         match self.inode_map.get(&ino) {
             Some(attr) => {
                 println!("\tok");
-                Ok(ReplyAttr{ttl: &TTL, attr})
+                Ok(ReplyAttr { ttl: &TTL, attr })
             }
             None => {
                 println!("\tENOENT");
@@ -90,7 +85,11 @@ impl WrappedFilesystem for S3TMFS {
             Some(ino) => {
                 println!("\tok ino={ino}");
                 let attr = self.inode_map.get(ino);
-                Ok(ReplyEntry{ttl: &TTL, attr: attr.unwrap(), generation: 1})
+                Ok(ReplyEntry {
+                    ttl: &TTL,
+                    attr: attr.unwrap(),
+                    generation: 1,
+                })
             }
             _ => {
                 println!("\t ENOENT");
@@ -105,7 +104,8 @@ impl WrappedFilesystem for S3TMFS {
         name: &std::ffi::OsStr,
         _mode: u32,
         _umask: u32,
-        _flags: i32) -> Result<ReplyCreate, i32> {
+        _flags: i32,
+    ) -> Result<ReplyCreate, i32> {
         let name_str = name.to_str().unwrap();
         println!(">>> create parent={parent}, name={}", name_str);
 
@@ -132,7 +132,7 @@ impl WrappedFilesystem for S3TMFS {
 
         self.next_inode = self.next_inode + 1;
 
-        Ok(ReplyCreate{
+        Ok(ReplyCreate {
             ttl: TTL.clone(),
             attr: attrs,
             generation: 0,
@@ -176,7 +176,7 @@ impl WrappedFilesystem for S3TMFS {
         println!(">>> destroy");
     }
 
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn fuse_exchange(
         &mut self,
         _parent: u64,
@@ -263,7 +263,7 @@ impl WrappedFilesystem for S3TMFS {
         }
     }
 
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes) {
         panic!();
     }
@@ -503,7 +503,7 @@ impl WrappedFilesystem for S3TMFS {
         panic!();
     }
 
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
         panic!();
     }

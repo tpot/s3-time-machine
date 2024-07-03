@@ -1,7 +1,7 @@
 use crate::s3tmfs::S3TMFS;
 
-use std::time::Duration;
 use fuser::{FileAttr, Filesystem, ReplyEmpty};
+use std::time::Duration;
 
 // If at some stage the request struct is required, we can define it using an enum.
 
@@ -58,7 +58,7 @@ pub trait WrappedFilesystem {
         _reply: fuser::ReplyWrite,
     );
     fn fuse_destroy(&mut self);
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn fuse_exchange(
         &mut self,
         parent: u64,
@@ -99,7 +99,7 @@ pub trait WrappedFilesystem {
         _size: u32,
         reply: fuser::ReplyXattr,
     );
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes);
     fn fuse_ioctl(
         &mut self,
@@ -215,7 +215,7 @@ pub trait WrappedFilesystem {
         _sleep: bool,
         _reply: ReplyEmpty,
     );
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr, _reply: ReplyEmpty);
     fn fuse_setxattr(
         &mut self,
@@ -260,7 +260,7 @@ impl Filesystem for S3TMFS {
     fn getattr(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
         match self.fuse_getattr(ino) {
             Ok(ra) => reply.attr(ra.ttl, ra.attr),
-            Err(err) => reply.error(err)
+            Err(err) => reply.error(err),
         }
     }
 
@@ -273,7 +273,7 @@ impl Filesystem for S3TMFS {
     ) {
         match self.fuse_lookup(parent, name) {
             Ok(rl) => reply.entry(rl.ttl, rl.attr, rl.generation),
-            Err(err) => reply.error(err)
+            Err(err) => reply.error(err),
         }
     }
 
@@ -330,7 +330,7 @@ impl Filesystem for S3TMFS {
         self.fuse_destroy()
     }
 
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn exchange(
         &mut self,
         _req: &fuser::Request<'_>,
@@ -420,7 +420,7 @@ impl Filesystem for S3TMFS {
         self.fuse_getxattr(ino, name, size, reply)
     }
 
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn getxtimes(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyXTimes) {
         self.fuse_getxtimes(ino, reply)
     }
@@ -648,7 +648,7 @@ impl Filesystem for S3TMFS {
         self.fuse_setlk(ino, fh, lock_owner, start, end, typ, pid, sleep, reply)
     }
 
-    #[cfg(feature="macos")]
+    #[cfg(feature = "macos")]
     fn setvolname(&mut self, _req: &fuser::Request<'_>, name: &std::ffi::OsStr, reply: ReplyEmpty) {
         self.fuse_setvolname(name, reply)
     }

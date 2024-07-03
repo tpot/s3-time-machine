@@ -25,7 +25,7 @@ fn fuse_getattr_root() {
         Ok(ra) => {
             assert!(ra.ttl.as_secs() > 0);
             assert!(ra.attr.ino == FUSE_ROOT_ID);
-        },
+        }
         Err(err) => panic!("getattr returned {err}"),
     }
 }
@@ -38,7 +38,7 @@ fn fuse_create() {
             assert!(rc.attr.ino > FUSE_ROOT_ID);
             assert!(rc.attr.size == 0);
             assert!(rc.attr.blocks == 0);
-        },
+        }
         Err(err) => panic!("create returned errno {err}"),
     }
 }
@@ -46,12 +46,14 @@ fn fuse_create() {
 #[test]
 fn fuse_create_getattr() {
     let mut fs = make_fs();
-    let result = fs.fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0).unwrap();
+    let result = fs
+        .fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0)
+        .unwrap();
     match fs.fuse_getattr(result.attr.ino) {
         Ok(ra) => {
             assert!(ra.ttl.as_secs() > 0);
             assert!(ra.attr.ino == result.attr.ino);
-        },
+        }
         Err(err) => panic!("getattr returned errno {err}"),
     }
 }
@@ -63,7 +65,7 @@ fn fuse_lookup_root() {
         Ok(re) => {
             assert!(re.ttl.as_secs() > 0);
             assert!(re.attr.ino == FUSE_ROOT_ID);
-        },
+        }
         Err(err) => panic!("lookup returned errno {err}"),
     }
 }
@@ -71,12 +73,14 @@ fn fuse_lookup_root() {
 #[test]
 fn fuse_lookup_create() {
     let mut fs = make_fs();
-    let _result = fs.fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0).unwrap();
+    let _result = fs
+        .fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0)
+        .unwrap();
     match fs.fuse_lookup(FUSE_ROOT_ID, OsStr::new("foo")) {
         Ok(re) => {
             assert!(re.ttl.as_secs() > 0);
             assert!(re.attr.ino > FUSE_ROOT_ID);
-        },
+        }
         Err(err) => panic!("lookup returned errno {err}"),
     }
 }
