@@ -39,6 +39,13 @@ pub struct ReplyWrite {
     pub size: u32,
 }
 
+pub struct ReplyLock {
+    pub start: u64,
+    pub end: u64,
+    pub typ: i32,
+    pub pid: u32,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -95,8 +102,7 @@ pub trait WrappedFilesystem {
         _end: u64,
         _typ: i32,
         _pid: u32,
-        _reply: fuser::ReplyLock,
-    );
+    ) -> Result<ReplyLock, i32>;
     fn fuse_getxattr(
         &mut self,
         ino: u64,
@@ -431,7 +437,10 @@ impl Filesystem for S3TMFS {
         pid: u32,
         reply: fuser::ReplyLock,
     ) {
-        self.fuse_getlk(ino, fh, lock_owner, start, end, typ, pid, reply)
+        match self.fuse_getlk(ino, fh, lock_owner, start, end, typ, pid) {
+            Ok(rl) => reply.locked(rl.start, rl.end, rl.typ, rl.pid),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn getxattr(

@@ -1,5 +1,5 @@
 use crate::wrapperfs::{
-    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyWrite, WrappedFilesystem,
+    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyLock, ReplyWrite, WrappedFilesystem,
 };
 
 use std::collections::HashMap;
@@ -236,8 +236,7 @@ impl WrappedFilesystem for S3TMFS {
         _end: u64,
         _typ: i32,
         _pid: u32,
-        _reply: fuser::ReplyLock,
-    ) {
+    ) -> Result<ReplyLock, i32> {
         panic!();
     }
 
