@@ -1,0 +1,15 @@
+on: [push]
+
+name: CI
+
+jobs:
+  build_and_test:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libfuse-dev
+      - run: cargo test --no-default-features

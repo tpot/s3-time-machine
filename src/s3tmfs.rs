@@ -176,6 +176,7 @@ impl WrappedFilesystem for S3TMFS {
         println!(">>> destroy");
     }
 
+    #[cfg(feature="macos")]
     fn fuse_exchange(
         &mut self,
         _parent: u64,
@@ -262,6 +263,7 @@ impl WrappedFilesystem for S3TMFS {
         }
     }
 
+    #[cfg(feature="macos")]
     fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes) {
         panic!();
     }
@@ -501,6 +503,7 @@ impl WrappedFilesystem for S3TMFS {
         panic!();
     }
 
+    #[cfg(feature="macos")]
     fn fuse_setvolname(&mut self, _name: &std::ffi::OsStr, _reply: ReplyEmpty) {
         panic!();
     }
