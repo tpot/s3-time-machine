@@ -144,7 +144,7 @@ pub trait WrappedFilesystem {
         _newparent: u64,
         _newname: &std::ffi::OsStr,
     ) -> Result<ReplyEntry, i32>;
-    fn fuse_listxattr(&mut self, _ino: u64, _sizee: u32, _reply: fuser::ReplyXattr);
+    fn fuse_listxattr(&mut self, _ino: u64, _size: u32) -> Result<ReplyXattr, i32>;
     fn fuse_lseek(
         &mut self,
         _ino: u64,
@@ -515,7 +515,10 @@ impl Filesystem for S3TMFS {
         size: u32,
         reply: fuser::ReplyXattr,
     ) {
-        self.fuse_listxattr(ino, size, reply)
+        match self.fuse_listxattr(ino, size) {
+            Ok(rx) => reply.size(rx.size),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn lseek(

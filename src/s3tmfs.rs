@@ -290,7 +290,7 @@ impl WrappedFilesystem for S3TMFS {
         panic!();
     }
 
-    fn fuse_listxattr(&mut self, _ino: u64, _sizee: u32, _reply: fuser::ReplyXattr) {
+    fn fuse_listxattr(&mut self, _ino: u64, _sizee: u32) -> Result<ReplyXattr, i32> {
         panic!();
     }
 
