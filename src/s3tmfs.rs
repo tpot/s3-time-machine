@@ -1,4 +1,6 @@
-use crate::wrapperfs::{ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, WrappedFilesystem};
+use crate::wrapperfs::{
+    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyWrite, WrappedFilesystem,
+};
 
 use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
@@ -167,8 +169,7 @@ impl WrappedFilesystem for S3TMFS {
         _offset_out: i64,
         _len: u64,
         _flags: u32,
-        _reply: fuser::ReplyWrite,
-    ) {
+    ) -> Result<ReplyWrite, i32> {
         panic!();
     }
 

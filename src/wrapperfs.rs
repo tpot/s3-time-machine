@@ -35,6 +35,10 @@ pub struct ReplyBmap {
     pub bmap: u64,
 }
 
+pub struct ReplyWrite {
+    pub size: u32,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -59,8 +63,7 @@ pub trait WrappedFilesystem {
         _offset_out: i64,
         _len: u64,
         _flags: u32,
-        _reply: fuser::ReplyWrite,
-    );
+    ) -> Result<ReplyWrite, i32>;
     fn fuse_destroy(&mut self);
     #[cfg(feature = "macos")]
     fn fuse_exchange(
@@ -325,9 +328,12 @@ impl Filesystem for S3TMFS {
         flags: u32,
         reply: fuser::ReplyWrite,
     ) {
-        self.fuse_copy_file_range(
-            ino_in, fh_in, offset_in, ino_out, fh_out, offset_out, len, flags, reply,
-        )
+        match self.fuse_copy_file_range(
+            ino_in, fh_in, offset_in, ino_out, fh_out, offset_out, len, flags,
+        ) {
+            Ok(rw) => reply.written(rw.size),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn destroy(&mut self) {
