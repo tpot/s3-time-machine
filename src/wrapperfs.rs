@@ -13,7 +13,7 @@ use fuser::{FileAttr, Filesystem, ReplyEmpty};
 // }
 
 pub struct ReplyAttr<'a> {
-    pub duration: &'a Duration,
+    pub ttl: &'a Duration,
     pub attr: &'a FileAttr,
 }
 
@@ -256,7 +256,7 @@ impl Filesystem for S3TMFS {
 
     fn getattr(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyAttr) {
         match self.fuse_getattr(ino) {
-            Ok(ra) => reply.attr(ra.duration, ra.attr),
+            Ok(ra) => reply.attr(ra.ttl, ra.attr),
             Err(err) => reply.error(err)
         }
     }

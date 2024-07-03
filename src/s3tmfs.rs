@@ -73,7 +73,7 @@ impl WrappedFilesystem for S3TMFS {
         match self.inode_map.get(&ino) {
             Some(attr) => {
                 println!("\tok");
-                Ok(ReplyAttr{duration: &TTL, attr})
+                Ok(ReplyAttr{ttl: &TTL, attr})
             }
             None => {
                 println!("\tENOENT");

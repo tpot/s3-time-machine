@@ -23,7 +23,7 @@ fn fuse_getattr_root() {
     let mut fs = make_fs();
     match fs.fuse_getattr(FUSE_ROOT_ID) {
         Ok(ra) => {
-            assert!(ra.duration.as_secs() > 0);
+            assert!(ra.ttl.as_secs() > 0);
             assert!(ra.attr.ino == FUSE_ROOT_ID);
         },
         Err(err) => panic!("getattr returned {err}"),
@@ -49,7 +49,7 @@ fn fuse_create_getattr() {
     let result = fs.fuse_create(FUSE_ROOT_ID, OsStr::new("foo"), 0, 0, 0).unwrap();
     match fs.fuse_getattr(result.attr.ino) {
         Ok(ra) => {
-            assert!(ra.duration.as_secs() > 0);
+            assert!(ra.ttl.as_secs() > 0);
             assert!(ra.attr.ino == result.attr.ino);
         },
         Err(err) => panic!("getattr returned errno {err}"),
