@@ -68,6 +68,11 @@ pub struct ReplyLseek {
     pub offset: i64,
 }
 
+pub struct ReplyOpen {
+    pub fh: u64,
+    pub flags: u32,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -171,8 +176,8 @@ pub trait WrappedFilesystem {
         _umask: u32,
         _rdev: u32,
     ) -> Result<ReplyEntry, i32>;
-    fn fuse_open(&mut self, ino: u64, flags: i32, reply: fuser::ReplyOpen);
-    fn fuse_opendir(&mut self, _ino: u64, _flags: i32, _reply: fuser::ReplyOpen);
+    fn fuse_open(&mut self, ino: u64, flags: i32) -> Result<ReplyOpen, i32>;
+    fn fuse_opendir(&mut self, _ino: u64, _flags: i32) -> Result<ReplyOpen, i32>;
     fn fuse_read(
         &mut self,
         ino: u64,
@@ -571,7 +576,10 @@ impl Filesystem for S3TMFS {
     }
 
     fn open(&mut self, _req: &fuser::Request<'_>, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
-        self.fuse_open(ino, flags, reply)
+        match self.fuse_open(ino, flags) {
+            Ok(ro) => reply.opened(ro.fh, ro.flags),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn opendir(
@@ -581,7 +589,10 @@ impl Filesystem for S3TMFS {
         flags: i32,
         reply: fuser::ReplyOpen,
     ) {
-        self.fuse_opendir(ino, flags, reply)
+        match self.fuse_opendir(ino, flags) {
+            Ok(ro) => reply.opened(ro.fh, ro.flags),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn read(
