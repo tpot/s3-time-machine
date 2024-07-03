@@ -3,6 +3,9 @@ use crate::wrapperfs::{
     WrappedFilesystem,
 };
 
+#[cfg(feature = "macos")]
+use crate::wrapperfs::ReplyXTimes;
+
 use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
 
@@ -262,7 +265,7 @@ impl WrappedFilesystem for S3TMFS {
     }
 
     #[cfg(feature = "macos")]
-    fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes) {
+    fn fuse_getxtimes(&mut self, _ino: u64) -> Result<ReplyXTimes, i32> {
         panic!();
     }
 

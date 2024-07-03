@@ -3,6 +3,9 @@ use crate::s3tmfs::S3TMFS;
 use fuser::{FileAttr, Filesystem, ReplyEmpty};
 use std::time::Duration;
 
+#[cfg(feature = "macos")]
+use std::time::SystemTime;
+
 // If at some stage the request struct is required, we can define it using an enum.
 
 // struct LocalRequest {}
@@ -48,6 +51,12 @@ pub struct ReplyLock {
 
 pub struct ReplyXattr {
     pub size: u32,
+}
+
+#[cfg(feature = "macos")]
+pub struct ReplyXTimes {
+    pub bkuptime: SystemTime,
+    pub crtime: SystemTime,
 }
 
 pub trait WrappedFilesystem {
@@ -114,7 +123,7 @@ pub trait WrappedFilesystem {
         _size: u32,
     ) -> Result<ReplyXattr, i32>;
     #[cfg(feature = "macos")]
-    fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes);
+    fn fuse_getxtimes(&mut self, _ino: u64) -> Result<ReplyXTimes, i32>;
     fn fuse_ioctl(
         &mut self,
         _ino: u64,
@@ -462,7 +471,10 @@ impl Filesystem for S3TMFS {
 
     #[cfg(feature = "macos")]
     fn getxtimes(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyXTimes) {
-        self.fuse_getxtimes(ino, reply)
+        match self.fuse_getxtimes(ino) {
+            Ok(rx) => reply.xtimes(rx.bkuptime, rx.crtime),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn ioctl(
