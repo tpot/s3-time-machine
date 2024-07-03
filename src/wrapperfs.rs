@@ -73,6 +73,10 @@ pub struct ReplyOpen {
     pub flags: u32,
 }
 
+pub struct ReplyData<'a> {
+    pub data: &'a [u8],
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -186,8 +190,7 @@ pub trait WrappedFilesystem {
         size: u32,
         _flags: i32,
         _lock_owner: Option<u64>,
-        _reply: fuser::ReplyData,
-    );
+    ) -> Result<ReplyData, i32>;
     fn fuse_readdir(&mut self, _ino: u64, _fh: u64, _offset: i64, _reply: fuser::ReplyDirectory);
     fn fuse_readdirplus(
         &mut self,
@@ -196,7 +199,7 @@ pub trait WrappedFilesystem {
         _offset: i64,
         _reply: fuser::ReplyDirectoryPlus,
     );
-    fn fuse_readlink(&mut self, _ino: u64, _replyy: fuser::ReplyData);
+    fn fuse_readlink(&mut self, _ino: u64) -> Result<ReplyData, i32>;
     fn fuse_release(
         &mut self,
         ino: u64,
@@ -606,7 +609,10 @@ impl Filesystem for S3TMFS {
         lock_owner: Option<u64>,
         reply: fuser::ReplyData,
     ) {
-        self.fuse_read(ino, fh, offset, size, flags, lock_owner, reply)
+        match self.fuse_read(ino, fh, offset, size, flags, lock_owner) {
+            Ok(rd) => reply.data(rd.data),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn readdir(
@@ -632,7 +638,10 @@ impl Filesystem for S3TMFS {
     }
 
     fn readlink(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyData) {
-        self.fuse_readlink(ino, reply)
+        match self.fuse_readlink(ino) {
+            Ok(rd) => reply.data(rd.data),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn release(

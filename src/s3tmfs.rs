@@ -1,6 +1,6 @@
 use crate::wrapperfs::{
-    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyIoctl, ReplyLock, ReplyLseek, ReplyOpen,
-    ReplyWrite, ReplyXattr, WrappedFilesystem,
+    ReplyAttr, ReplyBmap, ReplyCreate, ReplyData, ReplyEntry, ReplyIoctl, ReplyLock, ReplyLseek,
+    ReplyOpen, ReplyWrite, ReplyXattr, WrappedFilesystem,
 };
 
 #[cfg(feature = "macos")]
@@ -342,9 +342,9 @@ impl WrappedFilesystem for S3TMFS {
         size: u32,
         _flags: i32,
         _lock_owner: Option<u64>,
-        _reply: fuser::ReplyData,
-    ) {
+    ) -> Result<ReplyData, i32> {
         println!(">>> TODO: read ino={ino}, fh={fh}, offset={offset}, size={size}");
+        Ok(ReplyData { data: &[] })
     }
 
     fn fuse_readdir(&mut self, _ino: u64, _fh: u64, _offset: i64, _reply: fuser::ReplyDirectory) {
@@ -361,7 +361,7 @@ impl WrappedFilesystem for S3TMFS {
         panic!();
     }
 
-    fn fuse_readlink(&mut self, _ino: u64, _reply: fuser::ReplyData) {
+    fn fuse_readlink(&mut self, _ino: u64) -> Result<ReplyData, i32> {
         panic!();
     }
 
