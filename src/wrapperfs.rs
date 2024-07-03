@@ -85,6 +85,17 @@ pub struct ReplyDirectoryPlus {
     // TODO: add() method
 }
 
+pub struct ReplyStatfs {
+    pub blocks: u64,
+    pub bfree: u64,
+    pub bavail: u64,
+    pub files: u64,
+    pub ffree: u64,
+    pub bsize: u32,
+    pub namelen: u32,
+    pub frsize: u32,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -263,7 +274,7 @@ pub trait WrappedFilesystem {
         _flags: i32,
         _position: u32,
     ) -> Result<(), i32>;
-    fn fuse_statfs(&mut self, _ino: u64, reply: fuser::ReplyStatfs);
+    fn fuse_statfs(&mut self, _ino: u64) -> Result<ReplyStatfs, i32>;
     fn fuse_symlink(
         &mut self,
         _parent: u64,
@@ -798,7 +809,12 @@ impl Filesystem for S3TMFS {
     }
 
     fn statfs(&mut self, _req: &fuser::Request<'_>, ino: u64, reply: fuser::ReplyStatfs) {
-        self.fuse_statfs(ino, reply)
+        match self.fuse_statfs(ino) {
+            Ok(rs) => reply.statfs(
+                rs.blocks, rs.bfree, rs.bavail, rs.files, rs.ffree, rs.bsize, rs.namelen, rs.frsize,
+            ),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn symlink(
