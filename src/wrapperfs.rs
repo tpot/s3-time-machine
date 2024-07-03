@@ -31,6 +31,10 @@ pub struct ReplyCreate {
     pub flags: u32,
 }
 
+pub struct ReplyBmap {
+    pub bmap: u64,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -44,7 +48,7 @@ pub trait WrappedFilesystem {
         flags: i32,
     ) -> Result<ReplyCreate, i32>;
     fn fuse_access(&mut self, ino: u64, mask: i32) -> Result<(), i32>;
-    fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64, _reply: fuser::ReplyBmap);
+    fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64) -> Result<ReplyBmap, i32>;
     fn fuse_copy_file_range(
         &mut self,
         _ino_in: u64,
@@ -302,7 +306,10 @@ impl Filesystem for S3TMFS {
         idx: u64,
         reply: fuser::ReplyBmap,
     ) {
-        self.fuse_bmap(ino, blocksize, idx, reply)
+        match self.fuse_bmap(ino, blocksize, idx) {
+            Ok(rb) => reply.bmap(rb.bmap),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn copy_file_range(

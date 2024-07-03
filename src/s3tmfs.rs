@@ -1,4 +1,4 @@
-use crate::wrapperfs::{ReplyAttr, ReplyCreate, ReplyEntry, WrappedFilesystem};
+use crate::wrapperfs::{ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, WrappedFilesystem};
 
 use std::collections::HashMap;
 use std::time::{Duration, UNIX_EPOCH};
@@ -153,7 +153,7 @@ impl WrappedFilesystem for S3TMFS {
         }
     }
 
-    fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64, _reply: fuser::ReplyBmap) {
+    fn fuse_bmap(&mut self, _ino: u64, _blocksize: u32, _idx: u64) -> Result<ReplyBmap, i32> {
         panic!();
     }
 
