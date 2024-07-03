@@ -1,7 +1,6 @@
 use std::ffi::OsStr;
 
 use fuser::FUSE_ROOT_ID;
-use libc::passwd;
 
 use crate::s3tmfs::S3TMFS;
 use crate::wrapperfs::WrappedFilesystem;
