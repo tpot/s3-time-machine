@@ -291,8 +291,7 @@ pub trait WrappedFilesystem {
         _write_flags: u32,
         _flags: i32,
         _lock_owner: Option<u64>,
-        reply: fuser::ReplyWrite,
-    );
+    ) -> Result<ReplyWrite, i32>;
 }
 
 impl Filesystem for S3TMFS {
@@ -856,6 +855,9 @@ impl Filesystem for S3TMFS {
         lock_owner: Option<u64>,
         reply: fuser::ReplyWrite,
     ) {
-        self.fuse_write(ino, fh, offset, data, write_flags, flags, lock_owner, reply)
+        match self.fuse_write(ino, fh, offset, data, write_flags, flags, lock_owner) {
+            Ok(rw) => reply.written(rw.size),
+            Err(err) => reply.error(err),
+        }
     }
 }

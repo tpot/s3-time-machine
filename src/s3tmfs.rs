@@ -561,9 +561,10 @@ impl WrappedFilesystem for S3TMFS {
         _write_flags: u32,
         _flags: i32,
         _lock_owner: Option<u64>,
-        reply: fuser::ReplyWrite,
-    ) {
+    ) -> Result<ReplyWrite, i32> {
         println!(">>> TODO: write ino={ino}, fh={fh}, offset={offset}");
-        reply.written(data.len().try_into().unwrap());
+        Ok(ReplyWrite {
+            size: data.len().try_into().unwrap(),
+        })
     }
 }
