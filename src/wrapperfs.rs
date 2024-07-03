@@ -46,6 +46,10 @@ pub struct ReplyLock {
     pub pid: u32,
 }
 
+pub struct ReplyXattr {
+    pub size: u32,
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -108,8 +112,7 @@ pub trait WrappedFilesystem {
         ino: u64,
         name: &std::ffi::OsStr,
         _size: u32,
-        reply: fuser::ReplyXattr,
-    );
+    ) -> Result<ReplyXattr, i32>;
     #[cfg(feature = "macos")]
     fn fuse_getxtimes(&mut self, _ino: u64, _reply: fuser::ReplyXTimes);
     fn fuse_ioctl(
@@ -451,7 +454,10 @@ impl Filesystem for S3TMFS {
         size: u32,
         reply: fuser::ReplyXattr,
     ) {
-        self.fuse_getxattr(ino, name, size, reply)
+        match self.fuse_getxattr(ino, name, size) {
+            Ok(rx) => reply.size(rx.size),
+            Err(err) => reply.error(err),
+        }
     }
 
     #[cfg(feature = "macos")]

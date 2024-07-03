@@ -1,5 +1,6 @@
 use crate::wrapperfs::{
-    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyLock, ReplyWrite, WrappedFilesystem,
+    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyLock, ReplyWrite, ReplyXattr,
+    WrappedFilesystem,
 };
 
 use std::collections::HashMap;
@@ -245,18 +246,17 @@ impl WrappedFilesystem for S3TMFS {
         ino: u64,
         name: &std::ffi::OsStr,
         _size: u32,
-        reply: fuser::ReplyXattr,
-    ) {
+    ) -> Result<ReplyXattr, i32> {
         println!(">>> getxattr ino={ino}, name={}", name.to_str().unwrap());
 
         match self.inode_map.get(&ino) {
             Some(_) => {
                 println!("\tok");
-                reply.size(0)
+                Ok(ReplyXattr { size: 0 })
             }
             _ => {
                 println!("\tENOENT");
-                reply.error(ENOENT)
+                Err(ENOENT)
             }
         }
     }
