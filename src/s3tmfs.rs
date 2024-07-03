@@ -448,43 +448,33 @@ impl WrappedFilesystem for S3TMFS {
         } else if let Some(uid) = uid {
             println!("\t uid={uid}");
             panic!();
-        }
-        if let Some(gid) = gid {
+        } else if let Some(gid) = gid {
             println!("\t gid={gid}");
             panic!();
-        }
-        if let Some(size) = size {
+        } else if let Some(size) = size {
             println!("\t size={size}");
             attr.size = size;
-        }
-        if let Some(_) = atime {
+        } else if let Some(_) = atime {
             println!("\t atime=?");
             panic!();
-        }
-        if let Some(_) = mtime {
+        } else if let Some(_) = mtime {
             println!("\t mtime=?");
             panic!();
-        }
-        if let Some(ctime) = ctime {
+        } else if let Some(ctime) = ctime {
             println!("\t ctime={}", ctime.elapsed().unwrap().as_millis());
             panic!();
-        }
-        if let Some(fh) = fh {
+        } else if let Some(fh) = fh {
             println!("\t TODO: fh={fh}");
-        }
-        if let Some(crtime) = crtime {
+        } else if let Some(crtime) = crtime {
             println!("\t crtime={}", crtime.elapsed().unwrap().as_millis());
             panic!();
-        }
-        if let Some(chgtime) = chgtime {
+        } else if let Some(chgtime) = chgtime {
             println!("\t chgtime={}", chgtime.elapsed().unwrap().as_millis());
             panic!();
-        }
-        if let Some(bkuptime) = bkuptime {
+        } else if let Some(bkuptime) = bkuptime {
             println!("\t bkuptime={}", bkuptime.elapsed().unwrap().as_millis());
             panic!();
-        }
-        if let Some(flags) = flags {
+        } else if let Some(flags) = flags {
             println!("\t flags={flags}");
             panic!();
         } else {
