@@ -143,8 +143,7 @@ pub trait WrappedFilesystem {
         _ino: u64,
         _newparent: u64,
         _newname: &std::ffi::OsStr,
-        _reply: fuser::ReplyEntry,
-    );
+    ) -> Result<ReplyEntry, i32>;
     fn fuse_listxattr(&mut self, _ino: u64, _sizee: u32, _reply: fuser::ReplyXattr);
     fn fuse_lseek(
         &mut self,
@@ -160,8 +159,7 @@ pub trait WrappedFilesystem {
         _name: &std::ffi::OsStr,
         _mode: u32,
         _umask: u32,
-        _reply: fuser::ReplyEntry,
-    );
+    ) -> Result<ReplyEntry, i32>;
     fn fuse_mknod(
         &mut self,
         _parent: u64,
@@ -169,8 +167,7 @@ pub trait WrappedFilesystem {
         _mode: u32,
         _umask: u32,
         _rdev: u32,
-        _reply: fuser::ReplyEntry,
-    );
+    ) -> Result<ReplyEntry, i32>;
     fn fuse_open(&mut self, ino: u64, flags: i32, reply: fuser::ReplyOpen);
     fn fuse_opendir(&mut self, _ino: u64, _flags: i32, _reply: fuser::ReplyOpen);
     fn fuse_read(
@@ -255,8 +252,7 @@ pub trait WrappedFilesystem {
         _parent: u64,
         _link_name: &std::ffi::OsStr,
         _target: &std::path::Path,
-        _reply: fuser::ReplyEntry,
-    );
+    ) -> Result<ReplyEntry, i32>;
     fn fuse_unlink(&mut self, parent: u64, name: &std::ffi::OsStr) -> Result<(), i32>;
     fn fuse_write(
         &mut self,
@@ -506,7 +502,10 @@ impl Filesystem for S3TMFS {
         newname: &std::ffi::OsStr,
         reply: fuser::ReplyEntry,
     ) {
-        self.fuse_link(ino, newparent, newname, reply)
+        match self.fuse_link(ino, newparent, newname) {
+            Ok(re) => reply.entry(re.ttl, re.attr, re.generation),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn listxattr(
@@ -540,7 +539,10 @@ impl Filesystem for S3TMFS {
         umask: u32,
         reply: fuser::ReplyEntry,
     ) {
-        self.fuse_mkdir(parent, name, mode, umask, reply)
+        match self.fuse_mkdir(parent, name, mode, umask) {
+            Ok(re) => reply.entry(re.ttl, re.attr, re.generation),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn mknod(
@@ -553,7 +555,10 @@ impl Filesystem for S3TMFS {
         rdev: u32,
         reply: fuser::ReplyEntry,
     ) {
-        self.fuse_mknod(parent, name, mode, umask, rdev, reply)
+        match self.fuse_mknod(parent, name, mode, umask, rdev) {
+            Ok(re) => reply.entry(re.ttl, re.attr, re.generation),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn open(&mut self, _req: &fuser::Request<'_>, ino: u64, flags: i32, reply: fuser::ReplyOpen) {
@@ -761,7 +766,10 @@ impl Filesystem for S3TMFS {
         target: &std::path::Path,
         reply: fuser::ReplyEntry,
     ) {
-        self.fuse_symlink(parent, link_name, target, reply)
+        match self.fuse_symlink(parent, link_name, target) {
+            Ok(re) => reply.entry(re.ttl, re.attr, re.generation),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn unlink(

@@ -286,8 +286,7 @@ impl WrappedFilesystem for S3TMFS {
         _ino: u64,
         _newparent: u64,
         _newname: &std::ffi::OsStr,
-        _reply: fuser::ReplyEntry,
-    ) {
+    ) -> Result<ReplyEntry, i32> {
         panic!();
     }
 
@@ -312,8 +311,7 @@ impl WrappedFilesystem for S3TMFS {
         _name: &std::ffi::OsStr,
         _mode: u32,
         _umask: u32,
-        _reply: fuser::ReplyEntry,
-    ) {
+    ) -> Result<ReplyEntry, i32> {
         panic!();
     }
 
@@ -324,8 +322,7 @@ impl WrappedFilesystem for S3TMFS {
         _mode: u32,
         _umask: u32,
         _rdev: u32,
-        _reply: fuser::ReplyEntry,
-    ) {
+    ) -> Result<ReplyEntry, i32> {
         panic!();
     }
 
@@ -527,8 +524,7 @@ impl WrappedFilesystem for S3TMFS {
         _parent: u64,
         _link_name: &std::ffi::OsStr,
         _target: &std::path::Path,
-        _reply: fuser::ReplyEntry,
-    ) {
+    ) -> Result<ReplyEntry, i32> {
         panic!();
     }
 
