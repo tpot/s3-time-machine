@@ -1,5 +1,5 @@
 use crate::wrapperfs::{
-    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyLock, ReplyWrite, ReplyXattr,
+    ReplyAttr, ReplyBmap, ReplyCreate, ReplyEntry, ReplyIoctl, ReplyLock, ReplyWrite, ReplyXattr,
     WrappedFilesystem,
 };
 
@@ -277,8 +277,7 @@ impl WrappedFilesystem for S3TMFS {
         _cmd: u32,
         _in_data: &[u8],
         _out_size: u32,
-        _reply: fuser::ReplyIoctl,
-    ) {
+    ) -> Result<ReplyIoctl, i32> {
         panic!();
     }
 

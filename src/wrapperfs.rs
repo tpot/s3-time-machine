@@ -59,6 +59,11 @@ pub struct ReplyXTimes {
     pub crtime: SystemTime,
 }
 
+pub struct ReplyIoctl<'a> {
+    pub result: i32,
+    pub data: &'a [u8],
+}
+
 pub trait WrappedFilesystem {
     fn fuse_init(&mut self) -> Result<(), libc::c_int>;
     fn fuse_getattr(&mut self, ino: u64) -> Result<ReplyAttr, i32>;
@@ -132,8 +137,7 @@ pub trait WrappedFilesystem {
         _cmd: u32,
         _in_data: &[u8],
         _out_size: u32,
-        _reply: fuser::ReplyIoctl,
-    );
+    ) -> Result<ReplyIoctl, i32>;
     fn fuse_link(
         &mut self,
         _ino: u64,
@@ -488,7 +492,10 @@ impl Filesystem for S3TMFS {
         out_size: u32,
         reply: fuser::ReplyIoctl,
     ) {
-        self.fuse_ioctl(ino, fh, flags, cmd, in_data, out_size, reply)
+        match self.fuse_ioctl(ino, fh, flags, cmd, in_data, out_size) {
+            Ok(ri) => reply.ioctl(ri.result, ri.data),
+            Err(err) => reply.error(err),
+        }
     }
 
     fn link(
